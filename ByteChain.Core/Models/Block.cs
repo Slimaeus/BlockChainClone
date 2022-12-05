@@ -15,12 +15,13 @@ namespace ByteChain.Core.Models
     public class Block : IBlock
     {
         public byte[] Data { get; }
-        public byte[] Hash { get; set; }
+        public byte[] Hash { get; set; } = Array.Empty<byte>();
         public int Nonce { get; set; }
         public byte[] PreviousHash { get; set; }
         public DateTime TimeStamp { get; set; }
 
-        public Block(byte[] data) {
+        public Block(byte[] data)
+        {
             Data = data ?? throw new ArgumentNullException(nameof(data));
             Nonce = 0;
             PreviousHash = new byte[] { 0x00 };
@@ -37,7 +38,6 @@ namespace ByteChain.Core.Models
     {
         public static byte[] GenerateHash(this IBlock block)
         {
-            using var sha = SHA512.Create();
             using var st = new MemoryStream();
             using var br = new BinaryWriter(st);
             br.Write(block.Data);
@@ -45,13 +45,13 @@ namespace ByteChain.Core.Models
             br.Write(block.PreviousHash);
             br.Write(block.TimeStamp.ToString());
             var s = st.ToArray();
-            return sha.ComputeHash(s);
+            return SHA512.HashData(s);
         }
 
         public static byte[] MineHash(this IBlock block, byte[] difficult)
         {
             if (difficult == null) throw new ArgumentNullException(nameof(difficult));
-            byte[] hash = new byte[0];
+            var hash = Array.Empty<byte>();
             while (!hash.Take(2).SequenceEqual(difficult))
             {
                 block.Nonce++;
@@ -68,7 +68,7 @@ namespace ByteChain.Core.Models
 
         public static bool IsPreviousBlock(this IBlock block, IBlock previousBlock)
         {
-            if (previousBlock == null) throw new ArgumentNullException();
+            if (previousBlock == null) throw new ArgumentNullException(nameof(previousBlock));
             return previousBlock.IsValid() && block.PreviousHash.SequenceEqual(previousBlock.Hash);
         }
 
@@ -96,7 +96,7 @@ namespace ByteChain.Core.Models
         {
             if (_items.LastOrDefault() != null)
             {
-                item.PreviousHash = _items.LastOrDefault().Hash;
+                item.PreviousHash = _items.LastOrDefault()!.Hash;
             }
             item.Hash = item.MineHash(Difficult);
             Items.Add(item);
